@@ -1,0 +1,83 @@
+version: '3.3'
+
+services:
+  discovery:
+    build: D:/Projet_microservice/Micro_service/eurekaserver
+    ports:
+      - "8761:8761"
+    networks:
+      - micro_service_network
+
+  gateway:
+    build: D:/Projet_microservice/Micro_service/Gateway
+    ports:
+      - "8083:8083"
+    environment:
+      - EUREKA_SERVER_URI=http://discovery:8761/eureka
+      - KEYCLOAK_AUTH_SERVER_URL=http://keycloak:8080/auth
+      - KEYCLOAK_REALM=CouzeloKeycloak
+      - KEYCLOAK_CLIENT_ID=Gateway
+      - KEYCLOAK_CLIENT_SECRET=hoMzVBGczVK0hK4KcFk9SRMrF3uHySbG
+    networks:
+      - micro_service_network
+    depends_on:
+      - discovery
+      - keycloak
+
+  calendar:
+    build: D:/Projet_microservice/Micro_service/Calender
+    ports:
+      - "8086:8086"
+    environment:
+      - EUREKA_SERVER_URI=http://discovery:8761/eureka
+      - SPRING_DATA_MONGODB_URI=mongodb://najibagragba:najiba123@mongo:27017/calendar?authSource=admin
+      - KEYCLOAK_AUTH_SERVER_URL=http://keycloak:8080/auth
+      - KEYCLOAK_REALM=MicroProject
+      - KEYCLOAK_CLIENT_ID=Calender
+      - KEYCLOAK_CLIENT_SECRET=VU8fKKCgvAs0NR6VPgEP9tLfkJus7zWZ
+    networks:
+      - micro_service_network
+    depends_on:
+      - discovery
+      - mongo
+
+  mongo:
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=najibagragba
+      - MONGO_INITDB_ROOT_PASSWORD=najiba123
+    restart: unless-stopped
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - micro_service_network
+
+      
+  keycloak:
+    image: quay.io/keycloak/keycloak:23.0.0
+    environment:
+      - KEYCLOAK_ADMIN=admin
+      - KEYCLOAK_ADMIN_PASSWORD=admin
+      - DB_VENDOR=h2
+      - DB_ADDR:localhost
+      - DB_DATABASE:keycloak
+      - DB_USER:keycloak
+      - DB_PASSWORD:keycloak
+      - KEYCLOAK_FRONTEND_URL:http://keycloak:8080
+    ports:
+      - "8080:8080"
+    networks:
+      - micro_service_network
+    command: ["start-dev"]
+    
+    
+
+networks:
+  micro_service_network:
+    driver: bridge
+
+
+volumes:
+  mongo_data:
